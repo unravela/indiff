@@ -33,7 +33,16 @@ And I get following output:
          
 ## Installation
 
-TODO
+Download archive for your platform from [releases page](https://github.com/unravela/indiff/releases/latest) and unpack it to some directory on your file system.
+
+### How to install on Linux
+
+When you are on Linux you can use following commands to download and install latest release:
+
+    wget https://github.com/unravela/indiff/releases/download/v0.1.0/indiff_0.1.0_Linux_x86_64.tar.gz
+    tar -xzvf ./indiff_0.1.0_Linux_x86_64.tar.gz -C /tmp/
+    sudo mv /tmp/indiff /usr/local/bin
+
 
 ## Features
 
