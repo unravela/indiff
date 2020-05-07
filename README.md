@@ -39,8 +39,8 @@ Download archive for your platform from [releases page](https://github.com/unrav
 
 When you are on Linux you can use following commands to download and install latest release:
 
-    wget https://github.com/unravela/indiff/releases/download/v0.1.0/indiff_0.1.0_Linux_x86_64.tar.gz
-    tar -xzvf ./indiff_0.1.0_Linux_x86_64.tar.gz -C /tmp/
+    wget https://github.com/unravela/indiff/releases/download/v0.2.0/indiff_0.2.0_Linux_x86_64.tar.gz
+    tar -xzvf ./indiff_0.2.0_Linux_x86_64.tar.gz -C /tmp/
     sudo mv /tmp/indiff /usr/local/bin
 
 
@@ -100,6 +100,34 @@ To check changes between revision tagged with `v1.0.0` and latest commit run:
     indiff -f v1.0.0 -t HEAD en,de
 
 > Instead of tag name you can use commit hash. Tildes and carets are supported too so you can use expressions like `HEAD^` or `v.1.0.0~2`.
+
+### Content diff
+
+If you want to see the details about what exactly was changed you can use `-i` flag and indiff will print changes for each modified file in format similar to `git diff` output.
+
+Running following command:
+    
+    indiff -f v1.0.0 -i en,de
+
+Can result in output like this:
+
+    de: missing translation of: en/first.xml
+    de: missing translation of: en/second.md
+    de: missing translation of: en/subone/second.md
+    de: modified only base: en/first.md: de/first.md
+    diff en/first.md
+    @@ -1 +1,3 @@
+    # First file
+    +
+    +Content of file
+    de: modified base and translation: en/section/one.md: de/section/one.md
+    diff en/section/one.md
+    @@ -0,0 +1 @@
+    +# First file in section one
+    diff de/section/one.md
+    @@ -0,0 +1 @@
+    +# Erste Datei in Abschnitt eins
+
 
 ### It works without git too
 

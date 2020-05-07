@@ -2,7 +2,6 @@ package git
 
 import (
 	"bytes"
-	"path/filepath"
 
 	"github.com/pkg/errors"
 
@@ -11,60 +10,78 @@ import (
 	"github.com/go-git/go-git/v5/utils/merkletrie/noder"
 )
 
-// treeChanges holds changes
-type treeChanges struct {
-	root    string
-	changes merkletrie.Changes
+// revChange holds one change between to revisions
+type revisionChange struct {
+	underlying    merkletrie.Change
+	revisionRange *revisionRange
 }
 
+// revisionChanges represent collection of changes between two revisions
+type revisionChanges []*revisionChange
+
 // collectChanges collects changes in repo in given revisionRange
-func collectChanges(repo *git.Repository, revisionRange *Range) (*treeChanges, error) {
-	// get trees for both sides of revision range
-	olderTree, err := revisionRange.olderTree(repo)
-	if err != nil {
-		return nil, errors.Wrap(err, "Cannot get older revision tree")
-	}
-	newerTree, err := revisionRange.newerTree(repo)
-	if err != nil {
-		return nil, errors.Wrap(err, "Cannot get newer revision tree")
-	}
-	changes, err := merkletrie.DiffTree(olderTree, newerTree, diffTreeIsEquals)
+func collectChanges(repo *git.Repository, revisionRange *revisionRange) (revisionChanges, error) {
+	older := revisionRange.older.root
+	newer := revisionRange.newer.root
+	originalChanges, err := merkletrie.DiffTree(older, newer, diffTreeIsEquals)
 	if err != nil {
 		return nil, errors.Wrap(err, "Cannot resolve difference between older and newer revision tree")
 	}
 
-	// resolve repo root path
-	tree, err := repo.Worktree()
-	if err != nil {
-		return nil, errors.Wrap(err, "Cannot get worktree of repository")
+	// enrich changes with revision references
+	changes := make(revisionChanges, len(originalChanges))
+	for i, c := range originalChanges {
+		changes[i] = &revisionChange{
+			underlying:    c,
+			revisionRange: revisionRange,
+		}
 	}
-	root := tree.Filesystem.Root()
 
-	return &treeChanges{root: root, changes: changes}, nil
+	return changes, nil
 }
 
 // forEachCreatedOrModified invokes given function f for each change with action Inserted or Modified
-func (t *treeChanges) forEachCreatedOrModified(f func(path string)) {
-	for _, c := range t.changes {
-		action, _ := c.Action()
+func (changes revisionChanges) forEachCreatedOrModified(f func(change *revisionChange)) {
+	for _, c := range changes {
+		action, _ := c.underlying.Action()
 		if action == merkletrie.Insert || action == merkletrie.Modify {
-			path := filepath.Join(t.root, c.To.String())
-			f(path)
+			f(c)
 		}
 	}
 }
 
-// wasCreatedOrModified check if given path points to file which was changed with action Inserted or Modified
-func (t *treeChanges) wasCreatedOrModified(path string) bool {
-	for _, c := range t.changes {
-		action, _ := c.Action()
-		if action == merkletrie.Insert || action == merkletrie.Modify {
-			if path == filepath.Join(t.root, c.To.String()) {
-				return true
-			}
-		}
+// fromPath returns path to file before change
+func (c *revisionChange) fromPath() string {
+	return c.underlying.From.String()
+}
+
+// fromContent reads content of the file before change
+func (c *revisionChange) fromContent() string {
+	if c.fromPath() == "" {
+		return ""
 	}
-	return false
+	content, err := c.revisionRange.older.contentOf(c.fromPath())
+	if err != nil {
+		panic(err)
+	}
+	return content
+}
+
+// toPath returns path to file after change
+func (c *revisionChange) toPath() string {
+	return c.underlying.To.String()
+}
+
+// toContent returns content of the file after change
+func (c *revisionChange) toContent() string {
+	if c.toPath() == "" {
+		return ""
+	}
+	content, err := c.revisionRange.newer.contentOf(c.toPath())
+	if err != nil {
+		panic(err)
+	}
+	return content
 }
 
 // code below was copied from go-git as it was private but needed for merkletrie.DiffTree

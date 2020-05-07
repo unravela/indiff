@@ -74,6 +74,12 @@ func main() {
 				Value:   false,
 				Aliases: []string{"a"},
 			},
+			&cli.BoolFlag{
+				Name:    "show-diff",
+				Usage:   "Print diff for each modified file",
+				Value:   false,
+				Aliases: []string{"i"},
+			},
 		},
 		Writer:          os.Stderr,
 		HideHelpCommand: true,
@@ -126,7 +132,10 @@ func run(c *cli.Context) error {
 	}
 
 	// parse revision range
-	revisionRange := git.NewRange(c.String("from-revision"), c.String("to-revision"))
+	revisionRange := &git.Range{
+		Older: c.String("from-revision"),
+		Newer: c.String("to-revision"),
+	}
 	isGitAllowed := !c.Bool("no-git")
 
 	// collect bundle
@@ -149,7 +158,11 @@ func run(c *cli.Context) error {
 	}
 
 	// render
-	r := render.NewPlain(root, !c.Bool("absolute-paths"))
+	r := &render.Plain{
+		RootPath:          root,
+		ShowRelativePaths: !c.Bool("absolute-paths"),
+		ShowDiff:          c.Bool("show-diff"),
+	}
 	r.Render(os.Stdout, diffs)
 
 	return nil
