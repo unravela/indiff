@@ -29,7 +29,7 @@ And I get following output:
     de: missing translation of: en/second.md
     de: missing translation of: en/section/second.md
     de: modified only base: en/first.md: de/first.md
-    de: modified base and translation: en/subone/first.md: de/subone/first.md
+    de: modified base and translation: en/section/one.md: de/section/one.md
          
 ## Installation
 
